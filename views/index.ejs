@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= title%></title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+  </head>
+  <body>
+    <h1><%= title %></h1>
+    <p>Welcome to <%= title %></p>
+    <button id='bt_1' onclick="test();">호출</button>
+  </body>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+  <script>
+  function test(){
+
+    var params = {
+      type:"R",
+      tb_code:"TB001",
+      field:"*",
+      value:"123",
+      condition:""
+    };
+
+    $.ajax(
+    {
+      url:"./api/common/callDirectQuery",
+      type:"POST",
+      data:params,
+      dataType:"text",
+      success: function(result){
+        
+        var jsonObj = JSON.parse(result);
+        $(jsonObj).each(function(){
+          alert(this.IO_NO);
+        });
+      },
+      error: function(err){
+        alert(err);
+      }
+    });
+  }
+  </script>
+</html>

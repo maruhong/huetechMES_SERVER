@@ -1,0 +1,3 @@
+myslq.server start
+
+nodemon ./bin/www

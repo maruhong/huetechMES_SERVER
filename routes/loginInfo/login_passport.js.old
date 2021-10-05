@@ -1,0 +1,79 @@
+var express = require('express');
+var router = express.Router();
+var conn = require('../util/dbConn');
+var config = require('../util/config');
+var jwt = require('jsonwebtoken');
+
+const expiresIn = 60 * 10; // 10 min
+
+console.log('0000 payload received');
+const passport = require('passport');
+const passportJWT = require('passport-jwt');
+
+let ExtractJwt = passportJWT.ExtractJwt;
+let JwtStrategy = passportJWT.Strategy;
+console.log('1111 payload received');
+let jwtOptions = {};
+jwtOptions.jwtFromRequest = ExtractJwt.fromAuthHeaderAsBearerToken();
+jwtOptions.secretOrKey = config.secret;
+
+// lets create our strategy for web token
+let strategy = new JwtStrategy(jwtOptions, function(jwt_payload, next) {
+  console.log('payload received', jwt_payload);
+  let user = getUser({ id: jwt_payload.id });
+  if (user) {
+    next(null, user);
+  } else {
+    next(null, false);
+  }
+});
+// use the strategy
+passport.use(strategy);
+
+/* GET Login page. */
+router.post('/api/loginInfo', function(req, res, next) {
+  console.log ("loginInfo.js >>>>>0 ")
+  let user = req.body.empNo;
+  let pword = req.body.password;
+ 
+  console.log ("loginInfo.js >>>>>1 " + user + ":" + pword)
+
+  passport.authenticate('local', {session: false}, (err, user, pword, info) => {
+    console.log(err);
+    if (err || !user) {
+        return res.status(400).json({
+            message: info ? info.message : 'Login failed',
+            user   : user
+        });
+    }
+
+    req.login(user, {session: false}, (err) => {
+        if (err) {
+            res.send(err);
+        }
+        conn.executeQueryTx("SELECT count(*) as cnt FROM IO_EMP WHERE EMP_NO = ? AND PASSWORD = ?",[user,pword], 
+          function(result) {
+        //  console.log("In Index : " + JSON.stringify(result));
+        // console.log("In Index000 : " + JSON.parse(result));
+        // res.send(JSON.stringify(result));
+        //  console.log("In Index111 : " + JSON.stringify(result[0]));    
+          console.log("In Index222 : " + JSON.parse(JSON.stringify(result))[0].cnt);
+          let resultCnt = JSON.parse(JSON.stringify(result))[0].cnt;
+        //if(resultCnt > 0) { //정상 처리 되었을때 
+          if(result.status === 200) { //정상 처리 되었을때 
+              // create a promise that generates jwt asynchronously 
+              console.log("In Index333 : { id: user.id } : " + { id: user });
+              let payload = { id: user };
+              let token = jwt.sign(payload, jwtOptions.secretOrKey, {expiresIn});
+              //res.send({ msg: 'ok', token: token });
+              return res.json({user, token});
+          } else {
+                throw new Error('login failed')
+          }
+        });
+    });
+})
+(req, res);
+
+});
+module.exports = router;
